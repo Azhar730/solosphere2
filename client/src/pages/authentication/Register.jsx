@@ -16,8 +16,7 @@ const Register = () => {
     const name = form.name.value;
     const photo = form.photo.value;
     try {
-      const result = await createUser(email,password)
-      console.log(result);
+      await createUser(email,password)
       await updateUserProfile(name,photo)
       setUser({...user, photoURL: photo, displayName: name})
       navigate('/')
