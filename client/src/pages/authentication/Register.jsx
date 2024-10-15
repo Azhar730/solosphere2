@@ -1,12 +1,24 @@
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import logo from '/images/logo.png'
 import register from '/images/register.jpg'
 import toast from "react-hot-toast"
 import useAuth from "../../hooks/useAuth"
+import { useEffect } from "react"
+import axios from "axios"
 
 const Register = () => {
-  const { createUser, signInWithGoogle,updateUserProfile, user, setUser } = useAuth()
+  const { createUser, signInWithGoogle, updateUserProfile, user, setUser, loading } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const from = location.state || '/'
+
+  useEffect(() => {
+    if (user) {
+      navigate('/')
+    }
+  }, [user, navigate])
+
+
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -16,11 +28,17 @@ const Register = () => {
     const name = form.name.value;
     const photo = form.photo.value;
     try {
-      await createUser(email,password)
-      await updateUserProfile(name,photo)
-      setUser({...user, photoURL: photo, displayName: name})
-      navigate('/')
-      toast.success('Signup Successful')
+      const result = await createUser(email, password)
+      await updateUserProfile(name, photo)
+      setUser({ ...result.user, photoURL: photo, displayName: name })
+
+      const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/jwt`, {
+        email: result?.user?.email
+      }, { withCredentials: true })
+      if (data.success) {
+        toast.success('Sign Up Successful')
+        navigate(from, { replace: true })
+      }
     } catch (error) {
       toast.error(error.message)
     }
@@ -28,13 +46,21 @@ const Register = () => {
 
   const handleGoogleSignIn = async () => {
     try {
-      await signInWithGoogle()
-      toast.success('Google Sign In Successful')
-      navigate('/')
+      const result = await signInWithGoogle()
+
+      const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/jwt`, {
+        email: result?.user?.email
+      }, { withCredentials: true })
+      if (data.success) {
+        toast.success('Google Sign In Successful')
+        navigate(from, { replace: true })
+      }
+
     } catch (error) {
       toast.error(error.message)
     }
   }
+
   return (
     <div className='flex justify-center items-center min-h-[calc(100vh-306px)] my-12'>
       <div className='flex w-full max-w-sm mx-auto overflow-hidden bg-white rounded-lg shadow-lg  lg:max-w-4xl '>

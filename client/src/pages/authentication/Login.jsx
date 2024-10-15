@@ -1,12 +1,22 @@
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import logo from '/images/logo.png'
 import login from '/images/login.jpg'
 import useAuth from "../../hooks/useAuth"
 import toast from "react-hot-toast"
+import { useEffect } from "react"
+import axios from "axios"
 
 const Login = () => {
-    const { signIn, signInWithGoogle } = useAuth()
+    const { signIn, signInWithGoogle, user } = useAuth()
     const navigate = useNavigate()
+    const location = useLocation()
+    const from = location.state || '/'
+
+    useEffect(() => {
+        if (user) {
+            navigate('/')
+        }
+    }, [user, navigate])
 
     const handleSubmit = async (e) => {
         e.preventDefault()
@@ -14,9 +24,16 @@ const Login = () => {
         const email = form.email.value;
         const password = form.password.value
         try {
-            await signIn(email,password)
-            navigate('/')
-            toast.success('Login Successful')
+            const result = await signIn(email, password)
+
+            const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/jwt`, {
+                email: result?.user?.email
+            }, { withCredentials: true })
+            if (data.success) {
+                toast.success('Login Successful')
+                navigate(from, { replace: true })
+            }
+
         } catch (error) {
             toast.error(error.message)
         }
@@ -24,13 +41,19 @@ const Login = () => {
 
     const handleGoogleSignIn = async () => {
         try {
-            await signInWithGoogle()
-            toast.success('Google Sign In Successful')
-            navigate('/')
+            const result = await signInWithGoogle()
+            const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/jwt`, {
+                email: result?.user?.email
+            }, { withCredentials: true })
+            if (data.success) {
+                toast.success('Google Sign In Successful')
+                navigate(from, { replace: true })
+            }
         } catch (error) {
             toast.error(error.message)
         }
     }
+
     return (
         <div className='flex justify-center items-center min-h-[calc(100vh-306px)] my-12'>
             <div className='flex w-full max-w-sm mx-auto overflow-hidden bg-white rounded-lg shadow-lg  lg:max-w-4xl '>
